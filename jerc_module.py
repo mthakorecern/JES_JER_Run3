@@ -5,17 +5,13 @@ import hashlib
 import math
 from dataclasses import dataclass
 from typing import Dict, Iterable, Optional, Sequence, Tuple
-
 import correctionlib
 import numpy as np
-
 from PhysicsTools.NanoAODTools.postprocessing.framework.datamodel import Collection, Object
 from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
 from jerc_config import campaign_for_mc, get_campaign_config, infer_data_era, resolve_jerc_json
 
-
 MC_VARIATIONS = ("jesTotalUp", "jesTotalDown", "jerUp", "jerDown")
-
 
 def _wrap_phi(phi: float) -> float:
     return math.atan2(math.sin(phi), math.cos(phi))
@@ -49,12 +45,7 @@ def _evaluate(correction, values: Dict[str, object]):
         key = aliases.get(input_name, input_name)
 
         if key not in values:
-            raise KeyError(
-                f"No value was provided for correction input "
-                f"'{input_name}' in correction "
-                f"'{correction.name}'."
-            )
-
+            raise KeyError(f"No value was provided for correction input. '{input_name}' in correction '{correction.name}'.")
         arguments.append(values[key])
 
     return correction.evaluate(*arguments)
@@ -62,19 +53,12 @@ def _evaluate(correction, values: Dict[str, object]):
 
 def _stable_gaussian(run: int, lumi: int, event: int, index: int, salt: str) -> float:
     """
-    Return a reproducible standard-normal random number.
-
-    The random seed depends on the run, luminosity block, event number,
-    jet index, and collection salt.
+    Return a reproducible standard - normal random number. The random seed depends on the run, luminosity block, event number, jet index, and collection salt.
     """
-
-    payload = (
-        f"{run}:{lumi}:{event}:{index}:{salt}"
-    ).encode("utf-8")
-
+    payload = (f"{run}:{lumi}:{event}:{index}:{salt}").encode("utf-8")
     seed = int.from_bytes(hashlib.blake2b(payload, digest_size=8).digest(), "little")
     generator = np.random.default_rng(seed)
-
+    
     return float(generator.normal())
 
 
@@ -94,16 +78,11 @@ class MetJet:
 
     @property
     def raw_pt_muon_subtracted(self) -> float:
-        return self.raw_pt * (
-            1.0 - self.muon_subtr_factor
-        )
+        return self.raw_pt * (1.0 - self.muon_subtr_factor)
 
     @property
     def em_fraction(self) -> float:
-        return (
-            self.ch_em_fraction
-            + self.ne_em_fraction
-        )
+        return (self.ch_em_fraction+ self.ne_em_fraction)
 
 
 class JERCProducer(Module):
@@ -122,61 +101,39 @@ class JERCProducer(Module):
             self.data_era = infer_data_era(input_file=self.input_file, requested_year=self.year)
             self.campaign = self.data_era.campaign
 
-            print(
-                "Data era inferred from filename:"
-                f"Run{self.data_era.year}"
-                f"{self.data_era.run_era};"
-                f"campaign={self.campaign}"
-            )
-
+            print(f"Data era inferred from filename: Run {self.data_era.year} {self.data_era.run_era} campaign={self.campaign}")
         else:
             self.campaign = campaign_for_mc(year=self.year, input_file=self.input_file)
-
             print(f"MC campaign inferred as {self.campaign}")
 
         for kind in ("AK4", "AK8"):
             entry = get_campaign_config(kind=kind, campaign=self.campaign)
-            # print(entry)
             jerc_path = resolve_jerc_json(configured_path=entry["jercJsonPath"], year=self.year, kind=kind)
             print(f"Loading {kind} corrections from {jerc_path}")
-
             correction_set = (correctionlib.CorrectionSet.from_file(jerc_path))
 
             if self.is_data:
                 config_era = (f"Era{self.campaign}All")
-
                 era_cfg = (entry["ApplyOnData"]["JesNominal"][config_era])
-
                 self._refs[kind] = {
                     "cset": correction_set,
-                    "l1": correction_set[
-                        era_cfg["tagNameL1FastJet"]
-                    ],
-                    "l2": correction_set[
-                        era_cfg["tagNameL2Relative"]
-                    ],
-                    "residual": correction_set[
-                        era_cfg["tagNameL2L3Residual"]
-                    ],
+                    "l1": correction_set[era_cfg["tagNameL1FastJet"]],
+                    "l2": correction_set[era_cfg["tagNameL2Relative"]],
+                    "residual": correction_set[era_cfg["tagNameL2L3Residual"]],
                 }
-
             else:
                 mc_cfg = entry["ApplyOnMC"]
                 jes_cfg = mc_cfg["JesNominal"]
                 jer_cfg = mc_cfg["JerNominal"]
 
                 total_uncertainty_cfg = (mc_cfg["JesUncertaintySet"]["JesUncertaintySetTotal"])
-                total_tag = next(
-                    iter(total_uncertainty_cfg.values())
-                )
+                total_tag = next(iter(total_uncertainty_cfg.values()))
                 tags_to_check = {
                     "L1FastJet": jes_cfg["tagNameL1FastJet"],
                     "L2Relative": jes_cfg["tagNameL2Relative"],
                     "PtResolution": jer_cfg["tagNamePtResolution"],
                     "ScaleFactor": jer_cfg["tagNameJerScaleFactor"],
-                    "SFUncertainty": jer_cfg.get(
-                        "tagNameJerSFUncertainty"
-                    ),
+                    "SFUncertainty": jer_cfg.get("tagNameJerSFUncertainty"),
                     "JESTotal": total_tag,
                 }
 
@@ -186,46 +143,22 @@ class JERCProducer(Module):
 
                 for label, tag in tags_to_check.items():
                     if tag is None:
-                        print(
-                            f"[JERC][MC] {label:15s} = None"
-                        )
+                        print(f"{label:15s} = None")
                     else:
-                        print(
-                            f"[JERC][MC] {label:15s} = {tag} "
-                            f"| exists = {tag in available_tags}"
-                        )
+                        print(f"{label:15s} = {tag} | exists = {tag in available_tags}")
 
                 refs = {
                     "cset": correction_set,
-                    "l1": correction_set[
-                        jes_cfg["tagNameL1FastJet"]
-                    ],
-                    "l2": correction_set[
-                        jes_cfg["tagNameL2Relative"]
-                    ],
-                    "resolution": correction_set[
-                        jer_cfg["tagNamePtResolution"]
-                    ],
-                    "sf": correction_set[
-                        jer_cfg["tagNameJerScaleFactor"]
-                    ],
-                    "jesTotal": correction_set[
-                        total_tag
-                    ],
+                    "l1": correction_set[jes_cfg["tagNameL1FastJet"]],
+                    "l2": correction_set[jes_cfg["tagNameL2Relative"]],
+                    "resolution": correction_set[jer_cfg["tagNamePtResolution"]],
+                    "sf": correction_set[jer_cfg["tagNameJerScaleFactor"]],
+                    "jesTotal": correction_set[total_tag],
                 }
 
-                sf_uncertainty_tag = jer_cfg.get(
-                    "tagNameJerSFUncertainty"
-                )
+                sf_uncertainty_tag = jer_cfg.get("tagNameJerSFUncertainty")
 
-                refs["sf_uncertainty"] = (
-                    correction_set[
-                        sf_uncertainty_tag
-                    ]
-                    if sf_uncertainty_tag
-                    else None
-                )
-
+                refs["sf_uncertainty"] = (correction_set[sf_uncertainty_tag] if sf_uncertainty_tag else None)
                 self._refs[kind] = refs
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):

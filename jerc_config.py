@@ -40,19 +40,13 @@ def infer_data_era(input_file: str, requested_year: Optional[str] = None) -> Dat
 
     if not match:
         raise ValueError(
-            "Could not infer the data era from the filename. "
-            "Expected a token such as Run2022C, Run2023D, "
-            "Run2024G, Run2025C, or Run2026B."
-        )
+            "Could not infer the data era from the filename. Expected a token such as Run2022C, Run2023D, Run2024G, Run2025C, or Run2026B.")
 
     year = match.group(1)
     era = match.group(2)
 
     if requested_year and year != str(requested_year):
-        raise ValueError(
-            f"Filename says Run{year}{era}, "
-            f"but --year={requested_year} was requested."
-        )
+        raise ValueError(f"Filename says Run{year}{era}, but --year={requested_year} was requested.")
 
     if year == "2022":
         if era in ("C", "D"):
@@ -60,10 +54,7 @@ def infer_data_era(input_file: str, requested_year: Optional[str] = None) -> Dat
         elif era in ("E", "F", "G"):
             campaign = "2022Post"
         else:
-            raise ValueError(
-                f"Unsupported 2022 data era: {era}. "
-                "Expected C/D or E/F/G."
-            )
+            raise ValueError(f"Unsupported 2022 data era: {era}. Expected C/D or E/F/G.")
 
     elif year == "2023":
         if era in ("B", "C"):
@@ -71,10 +62,7 @@ def infer_data_era(input_file: str, requested_year: Optional[str] = None) -> Dat
         elif era == "D":
             campaign = "2023Post"
         else:
-            raise ValueError(
-                f"Unsupported 2023 data era: {era}. "
-                "Expected B/C or D."
-            )
+            raise ValueError(f"Unsupported 2023 data era: {era}.Expected B/C or D.")
 
     else:
         # The supplied configuration JSONs use one correction campaign
@@ -84,12 +72,7 @@ def infer_data_era(input_file: str, requested_year: Optional[str] = None) -> Dat
         # configuration entries are provided.
         campaign = year
 
-    return DataEra(
-        year=year,
-        run_era=era,
-        campaign=campaign,
-        config_era=f"Era{campaign}All",
-    )
+    return DataEra(year=year, run_era=era, campaign=campaign, config_era=f"Era{campaign}All",)
 
 
 def campaign_for_mc(year: str, input_file: str) -> str:
