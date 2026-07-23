@@ -47,6 +47,7 @@ def get_extra_inputs(year):
         os.path.join(JERC_BASE,"jerc_config.py"),
         os.path.join(JERC_BASE,"JecConfigAK4.json"),
         os.path.join(JERC_BASE,"JecConfigAK8.json"),
+        os.path.join(JERC_BASE,"Datadrop.txt"),
         os.path.join(JERC_BASE,"metadata",year,"jet_jerc.json.gz"),
         os.path.join(JERC_BASE,"metadata",year,"fatJet_jerc.json.gz"),
         ]
@@ -121,10 +122,6 @@ def main(args):
         command.append(f"--max-entries={args.maxEntries}"
         )
 
-    if args.keep:
-        command.append(f"--keep={args.keep}"
-        )
-
     printable_command = " ".join(shlex.quote(item) for item in command)
     print(f"\nSubmitting farmout job with command:\n {printable_command} \n")
     completed = subprocess.run(printable_command, shell=True, check=False)
@@ -150,8 +147,7 @@ if __name__ == "__main__":
     parser.add_argument("--year", required=True, choices=["2022","2023","2024","2025","2026"], help="Run-3 year.")
     parser.add_argument("--isMC", action="store_true", help=("Process MC. If omitted, the jobs process data."))
     parser.add_argument("--maxEntries", type=int, default=None, help=("Optional number of events processed per input file."))
-    parser.add_argument("--keep", default=None, help=("Optional NanoAODTools branch-selection file."))
     parser.add_argument("--memory", type=int, default=3000, help=("Requested worker memory in MB."))
-    parser.add_argument("--disk", type=int, default=10000000, help=("Requested worker disk space in kB."))
+    parser.add_argument("--disk", type=int, default=1000000, help=("Requested worker disk space in kB."))
     parsed_args = parser.parse_args()
     main(parsed_args)

@@ -16,8 +16,6 @@ def parse_args():
     data_type_group.add_argument("--data", action="store_true", help="Process collision data.")
     data_type_group.add_argument("--mc", action="store_true", help="Process Monte Carlo.")
     parser.add_argument("--max-entries", type=int, default=None, help="Optional maximum number of events to process.")
-    parser.add_argument("--keep", default=None, help="Optional NanoAODTools branch-selection file. If omitted, all original branches are retained.")
-
     return parser.parse_args()
 
 
@@ -30,12 +28,11 @@ def main():
         outputDir=args.output_dir,
         inputFiles=[args.input],
         cut=None,
-        branchsel=args.keep,
-        outputbranchsel=args.keep,
         modules=[jerc_module],
         noOut=False,
         postfix="",
         maxEntries=args.max_entries,
+        outputbranchsel="Datadrop.txt",
     )
 
     processor.run()
